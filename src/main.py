@@ -78,7 +78,7 @@ class MyService(Service):
         self._logger = get_logger(settings)
         self._model = Qwen2VLForConditionalGeneration.from_pretrained(
             "opendatalab/MinerU2.5-2509-1.2B",
-            dtype="auto", # use `torch_dtype` instead of `dtype` for transformers<4.56.0
+            dtype="auto",  # use `torch_dtype` instead of `dtype` for transformers<4.56.0
             device_map="auto"
         )
         self._processor = AutoProcessor.from_pretrained("opendatalab/MinerU2.5-2509-1.2B", use_fast=True)
