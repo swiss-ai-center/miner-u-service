@@ -19,31 +19,34 @@ from common_code.common.models import FieldDescription, ExecutionUnitTag
 from contextlib import asynccontextmanager
 
 # Imports required by the service's model
-# TODO: 1. ADD REQUIRED IMPORTS (ALSO IN THE REQUIREMENTS.TXT)
+from transformers import AutoProcessor, Qwen2VLForConditionalGeneration
+from PIL import Image
+from mineru_vl_utils import MinerUClient
+import io
+import json
 
 settings = get_settings()
 
 
 class MyService(Service):
-    # TODO: 2. CHANGE THIS DESCRIPTION
     """
-    My service model
+    MinerU service model
     """
 
     # Any additional fields must be excluded for Pydantic to work
     _model: object
     _logger: Logger
+    _processor: AutoProcessor
+    _client: MinerUClient
 
     def __init__(self):
         super().__init__(
-            # TODO: 3. CHANGE THE SERVICE NAME AND SLUG
-            name="My Service",
-            slug="my-service",
+            name="MinerU",
+            slug="miner-u-service",
             url=settings.service_url,
             summary=api_summary,
             description=api_description,
             status=ServiceStatus.AVAILABLE,
-            # TODO: 4. CHANGE THE INPUT AND OUTPUT FIELDS, THE TAGS AND THE HAS_AI VARIABLE
             data_in_fields=[
                 FieldDescription(
                     name="image",
@@ -63,25 +66,34 @@ class MyService(Service):
                     name=ExecutionUnitTagName.IMAGE_PROCESSING,
                     acronym=ExecutionUnitTagAcronym.IMAGE_PROCESSING,
                 ),
+                ExecutionUnitTag(
+                    name=ExecutionUnitTagName.DOCUMENT_PROCESSING,
+                    acronym=ExecutionUnitTagAcronym.DOCUMENT_PROCESSING,
+                ),
             ],
-            has_ai=False,
+            has_ai=True,
             # OPTIONAL: CHANGE THE DOCS URL TO YOUR SERVICE'S DOCS
-            docs_url="https://docs.swiss-ai-center.ch/reference/core-concepts/service/",
+            docs_url="https://docs.swiss-ai-center.ch/reference/services/miner-u/",
         )
         self._logger = get_logger(settings)
+        self._model = Qwen2VLForConditionalGeneration.from_pretrained(
+            "opendatalab/MinerU2.5-2509-1.2B",
+            dtype="auto", # use `torch_dtype` instead of `dtype` for transformers<4.56.0
+            device_map="auto"
+        )
+        self._processor = AutoProcessor.from_pretrained("opendatalab/MinerU2.5-2509-1.2B", use_fast=True)
+        self._client = MinerUClient(backend="transformers", model=self._model, processor=self._processor)
 
-    # TODO: 5. CHANGE THE PROCESS METHOD (CORE OF THE SERVICE)
     def process(self, data):
-        # NOTE that the data is a dictionary with the keys being the field names set in the data_in_fields
-        # The objects in the data variable are always bytes. It is necessary to convert them to the desired type
-        # before using them.
-        # raw = data["image"].data
-        # input_type = data["image"].type
-        # ... do something with the raw data
+        raw = data["image"].data
+        image = Image.open(io.BytesIO(raw))
 
-        # NOTE that the result must be a dictionary with the keys being the field names set in the data_out_fields
+        extracted_blocks = self._client.two_step_extract(image)
+        print(extracted_blocks)
+
         return {
-            "result": TaskData(data=..., type=FieldDescriptionType.APPLICATION_JSON)
+            "result": TaskData(data=json.dumps(extracted_blocks).encode("utf-8"),
+                               type=FieldDescriptionType.APPLICATION_JSON)
         }
 
 
@@ -135,21 +147,19 @@ async def lifespan(app: FastAPI):
         await service_service.graceful_shutdown(my_service, engine_url)
 
 
-# TODO: 6. CHANGE THE API DESCRIPTION AND SUMMARY
-api_description = """My service
-bla bla bla...
+api_description = """
+The service uses MinerU model to extract structured information from images of documents.
 """
-api_summary = """My service
-bla bla bla...
+api_summary = """
+Extract structured information from document images using MinerU.
 """
 
 # Define the FastAPI application with information
-# TODO: 7. CHANGE THE API TITLE, VERSION, CONTACT AND LICENSE
 app = FastAPI(
     lifespan=lifespan,
-    title="Sample Service API.",
+    title="MinerU API.",
     description=api_description,
-    version="0.0.1",
+    version="1.0.0",
     contact={
         "name": "Swiss AI Center",
         "url": "https://swiss-ai-center.ch/",
