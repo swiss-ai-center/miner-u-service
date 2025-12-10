@@ -22,7 +22,7 @@ spec:
         imagePullPolicy: Always
         resources:
           limits:
-            nvidia.com/gpu-titan-rtx-6gb: 2
+            nvidia.com/gpu-rtx-4090-24gb: 1
         ports:
         - name: http
           containerPort: 80
