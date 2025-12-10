@@ -4,15 +4,16 @@ FROM python:3.11
 # Work directory
 WORKDIR /app
 
-# Copy requirements file
+# Copy requirements so entrypoint can install them at runtime
 COPY ./requirements.txt .
 COPY ./requirements-all.txt .
 
-# Install dependencies
-RUN pip install --requirement requirements.txt --requirement requirements-all.txt
-
 # Copy sources
 COPY src src
+
+# Copy entrypoint
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Environment variables
 ENV ENVIRONMENT=${ENVIRONMENT}
@@ -28,5 +29,5 @@ EXPOSE 80
 # Switch to src directory
 WORKDIR "/app/src"
 
-# Command to run on start
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]
