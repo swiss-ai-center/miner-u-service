@@ -89,10 +89,34 @@ class MyService(Service):
         image = Image.open(io.BytesIO(raw))
 
         extracted_blocks = self._client.two_step_extract(image)
-        print(extracted_blocks)
+        formatted_extracted_blocks = []
+        for block in extracted_blocks:
+            bbox = block.get("bbox", None)
+            if bbox:
+                formatted_block = {
+                    "type": block.get("type", ""),
+                    "text": block.get("content", ""),
+                    "position": {
+                        "left": bbox[0] * image.width,
+                        "top": bbox[1] * image.height,
+                        "width": (bbox[2] - bbox[0]) * image.width,
+                        "height": (bbox[3] - bbox[1]) * image.height,
+                    }
+                }
+            else:
+                formatted_block = {
+                    "type": block.get("type", ""),
+                    "text": block.get("content", ""),
+                    "position": None
+                }
+            formatted_extracted_blocks.append(formatted_block)
+
+        result = {
+            "boxes": formatted_extracted_blocks
+        }
 
         return {
-            "result": TaskData(data=json.dumps(extracted_blocks).encode("utf-8"),
+            "result": TaskData(data=json.dumps(result).encode("utf-8"),
                                type=FieldDescriptionType.APPLICATION_JSON)
         }
 
