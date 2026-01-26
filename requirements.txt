@@ -1,2 +1,2 @@
-common-code[test] @ git+https://github.com/swiss-ai-center/common-code.git@update-aiofiles-version
+common-code[test] @ git+https://github.com/swiss-ai-center/common-code.git@main
 mineru-vl-utils[transformers]==0.1.17
