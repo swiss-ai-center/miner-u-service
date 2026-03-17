@@ -4,16 +4,11 @@ FROM python:3.11
 # Work directory
 WORKDIR /app
 
-# Copy requirements so entrypoint can install them at runtime
-COPY ./requirements.txt .
-COPY ./requirements-all.txt .
-
-# Copy sources
-COPY src src
-
-# Copy entrypoint
-COPY entrypoint.sh /usr/local/bin/entrypoint.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh
+# Copy requirements file
+COPY pyproject.toml uv.lock ./
+# Install dependencies
+RUN pip install --no-cache-dir uv
+RUN uv sync
 
 # Environment variables
 ENV ENVIRONMENT=${ENVIRONMENT}
@@ -28,6 +23,6 @@ EXPOSE 80
 
 # Switch to src directory
 WORKDIR "/app/src"
-
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+ENTRYPOINT ["uv", "run"]
+# Command to run on start
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "80"]
